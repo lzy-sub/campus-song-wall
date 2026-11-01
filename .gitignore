@@ -9,3 +9,13 @@ node_modules
 *.db-wal
 data/
 tsconfig.tsbuildinfo
+
+# 部署产物：需要提交，因此对 .next 中五类文件取消忽略
+!.next/
+.next/*
+!.next/standalone/
+!.next/standalone/**
+!.next/static/
+!.next/BUILD_ID
+!.next/DEPLOY_INPUT_HASH
+!.next/DEPLOY_PLATFORM
