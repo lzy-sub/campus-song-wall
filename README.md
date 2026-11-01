@@ -98,3 +98,26 @@ pnpm build
 - 一个 PR 只解决一个明确问题
 
 评审通过一个有意义、可运行的 PR，即完成新手任务。
+
+## 部署产物要求（重要）
+
+这个仓库和凛光一样，**源码改动必须同时提交部署产物**。不允许只提交源码后让服务器现构建。
+
+本地有 Linux/Docker 环境时执行：
+
+~~~bash
+pnpm deploy:build
+pnpm deploy:check
+git add -f .next/standalone .next/static .next/BUILD_ID .next/DEPLOY_INPUT_HASH .next/DEPLOY_PLATFORM
+git commit -m "chore: update deploy artifacts (.next)"
+~~~
+
+提交 PR 时必须包含这五类产物：
+
+- `.next/standalone`
+- `.next/static`
+- `.next/BUILD_ID`
+- `.next/DEPLOY_INPUT_HASH`
+- `.next/DEPLOY_PLATFORM`
+
+如果本地没有 Docker/Linux 构建环境，请先说明，不要改用普通 `next build` 代替，也不要在生产服务器上构建。
