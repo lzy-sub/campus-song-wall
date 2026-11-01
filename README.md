@@ -76,7 +76,6 @@ pnpm dev
 常用检查：
 
 ~~~bash
-pnpm lint
 pnpm typecheck
 pnpm build
 ~~~
