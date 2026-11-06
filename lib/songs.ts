@@ -6,6 +6,7 @@ export type SongRequest = {
   artist: string;
   requester: string;
   hidden: boolean;
+  hiddenAt: string | null;
   createdAt: string;
 };
 
@@ -28,15 +29,28 @@ export function addSong(input: { song: string; artist: string; requester: string
     artist: input.artist,
     requester: input.requester,
     hidden: false,
+    hiddenAt: null,
     createdAt: new Date().toISOString(),
   };
   store.songs.unshift(song);
   return song;
 }
 
+export function findSong(id: string) {
+  return store.songs.find((item) => item.id === id) ?? null;
+}
+
 export function hideSong(id: string) {
-  const song = store.songs.find((item) => item.id === id);
+  const song = findSong(id);
   if (!song) return null;
-  song.hidden = true;
+  if (!song.hidden) {
+    song.hidden = true;
+    song.hiddenAt = new Date().toISOString();
+  }
   return song;
+}
+
+/** 仅供测试使用：清空内存里的点歌数据 */
+export function __resetSongsForTests(): void {
+  store.songs.length = 0;
 }

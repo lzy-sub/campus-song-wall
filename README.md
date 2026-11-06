@@ -19,6 +19,10 @@
 - `app/api/songs/route.ts`：GET / POST 接口
 - `lib/songs.ts`：内存版数据层，方便先跑通逻辑
 - 基础 `package.json`、`tsconfig.json`、`next.config.ts`
+- `components/AdminPanel.tsx`：管理员登录面板（口令 + passkey 双因素）
+- `app/api/admin/*`：管理员口令、passkey 注册/验证、会话接口
+- `lib/auth.ts` / `lib/webauthn.ts`：内存版管理认证状态与 WebAuthn 参数推导
+- `tests/*.test.ts`：认证与数据层单元测试（`pnpm test`）
 
 > 注意：数据存在进程内存里，重启会丢失。这是故意留给新手的改造点。
 
@@ -78,6 +82,52 @@ pnpm dev
 ~~~bash
 pnpm typecheck
 pnpm build
+~~~
+
+## 管理员 2FA（口令 + passkey）
+
+首页顶部新增了管理员入口，采用「口令（第一因素）+ WebAuthn passkey（第二因素）」登录：
+
+1. 输入 `ADMIN_PASSWORD` 配置的管理员口令
+2. 首次使用：浏览器会引导注册一个 passkey（平台认证器或安全密钥）
+3. 之后每次登录：口令通过后，还要用同一设备的 passkey 再验证一次
+4. 登录后每条点歌右侧出现「隐藏」按钮；隐藏内容不再出现在公开列表里，并记录 `hiddenAt`
+
+环境变量：复制 `.env.example` 为 `.env.local` 后按需修改（`.env*` 已被 gitignore，不要提交真实口令）。
+
+| 变量 | 必填 | 说明 |
+| --- | --- | --- |
+| `ADMIN_PASSWORD` | 是（未配置时管理员接口返回 503） | 第一因素管理员口令 |
+| `WEBAUTHN_RP_ID` | 否 | passkey 的 RP ID，默认从请求 origin 的域名推导 |
+| `WEBAUTHN_ORIGIN` | 否 | 期望的 origin，默认从请求头推导，反向代理场景可显式指定 |
+
+### 新增接口
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| POST | `/api/admin/login` | 校验口令，返回 `{ next: "register" \| "passkey" }` 并签发 5 分钟 pre-auth cookie |
+| GET | `/api/admin/session` | 查询是否已登录、是否已注册 passkey |
+| DELETE | `/api/admin/session` | 退出登录 |
+| GET | `/api/admin/passkey/register` | 获取 passkey 注册参数（仅限尚未注册时） |
+| POST | `/api/admin/passkey/register` | 校验注册结果、保存凭据并建立会话 |
+| GET | `/api/admin/passkey/login` | 获取 passkey 断言参数 |
+| POST | `/api/admin/passkey/login` | 校验断言并建立会话 |
+| PATCH | `/api/songs/[id]` | 隐藏点歌（需要管理员会话） |
+
+### 安全设计
+
+- 口令使用常量时间比较；同一进程内连续失败达到 5 次触发 10 分钟限流
+- pre-auth / 会话 cookie 均为 `HttpOnly` + `SameSite=Lax`（生产环境额外加 `Secure`），cookie 值只是随机 id，真实状态保存在服务端
+- passkey 校验会核对 origin、RP ID、challenge 与签名，并更新凭据计数器
+- 首次注册 passkey 只允许「尚无任何 passkey」时进行，避免仅凭口令就给攻击者注册第二因素
+- 当前版本不支持在线追加第二台设备；如需更换设备，重启服务（内存状态清空）后重新注册
+
+> 和点歌数据一样，passkey / 会话 / challenge 都只存在进程内存里，重启后清空。生产使用请换成持久化存储。
+
+跑测试：
+
+~~~bash
+pnpm test
 ~~~
 
 ## 完成标准
