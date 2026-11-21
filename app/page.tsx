@@ -28,6 +28,13 @@ export default function HomePage() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError("");
+
+    // 🌟 新增：前端校验逻辑（禁止空提交和纯空格）
+    if (!form.song.trim() || !form.artist.trim() || !form.requester.trim()) {
+      setError("歌名、歌手和点歌人都不能为空哦！");
+      return; // 拦截！不再往下发请求
+    }
+
     const response = await fetch("/api/songs", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -41,16 +48,15 @@ export default function HomePage() {
     setForm({ song: "", artist: "", requester: "" });
     await loadSongs();
   }
-
   return (
     <main style={{ maxWidth: 760, margin: "0 auto", padding: "48px 20px" }}>
       <h1 style={{ fontSize: 32, marginBottom: 8 }}>校园点歌墙</h1>
       <p style={{ color: "#666", marginBottom: 28 }}>一个可供新手练习前后端和 PR 流程的迷你项目。</p>
 
       <form onSubmit={submit} style={{ display: "grid", gap: 10, padding: 20, background: "white", borderRadius: 16 }}>
-        <input value={form.song} onChange={(e) => setForm({ ...form, song: e.target.value })} placeholder="歌名" style={{ padding: 10 }} />
-        <input value={form.artist} onChange={(e) => setForm({ ...form, artist: e.target.value })} placeholder="歌手" style={{ padding: 10 }} />
-        <input value={form.requester} onChange={(e) => setForm({ ...form, requester: e.target.value })} placeholder="点歌人" style={{ padding: 10 }} />
+        <input maxLength={30} value={form.song} onChange={(e) => setForm({ ...form, song: e.target.value })} placeholder="歌名" style={{ padding: 10 }} />
+        <input maxLength={20} value={form.artist} onChange={(e) => setForm({ ...form, artist: e.target.value })} placeholder="歌手" style={{ padding: 10 }} />
+        <input maxLength={10} value={form.requester} onChange={(e) => setForm({ ...form, requester: e.target.value })} placeholder="点歌人" style={{ padding: 10 }} />
         <button type="submit" style={{ padding: 10, cursor: "pointer" }}>提交点歌</button>
         {error ? <p style={{ color: "crimson", margin: 0 }}>{error}</p> : null}
       </form>
