@@ -17,7 +17,8 @@
 - Next.js App Router + TypeScript
 - `app/page.tsx`：点歌表单和列表
 - `app/api/songs/route.ts`：GET / POST 接口
-- `lib/songs.ts`：内存版数据层，方便先跑通逻辑
+- `app/api/songs/[id]/route.ts`：PATCH 接口，管理员隐藏点歌（见下方「管理员隐藏」）
+- `lib/songs.ts`：内存版数据层，含隐藏与审计记录
 - 基础 `package.json`、`tsconfig.json`、`next.config.ts`
 
 > 注意：数据存在进程内存里，重启会丢失。这是故意留给新手的改造点。
@@ -59,11 +60,15 @@
 app/
   page.tsx
   api/songs/route.ts
+  api/songs/[id]/route.ts
+  api/admin/audit/route.ts
 components/        # 有需要再拆
 lib/
   songs.ts
+  admin.ts
 prisma/            # 任务 1 再创建
-tests/             # 任务 4 再创建
+tests/
+  songs.test.ts
 ~~~
 
 ## 本地开发
@@ -98,6 +103,34 @@ pnpm build
 - 一个 PR 只解决一个明确问题
 
 评审通过一个有意义、可运行的 PR，即完成新手任务。
+
+## 管理员隐藏（任务 2 已完成）
+
+- 鉴权：请求头 `x-admin-password` 与服务端环境变量 `ADMIN_PASSWORD` 相等即可（最简单的口令方案）。
+  - 鉴权逻辑抽在 `lib/admin.ts` 的 `checkAdmin()`，`PATCH /api/songs/[id]` 与 `GET /api/admin/audit` 复用。
+- 接口：`PATCH /api/songs/[id]`，隐藏指定 id 的点歌。
+  - `401`：口令错误；`404`：点歌不存在；`500`：服务端未配置 `ADMIN_PASSWORD`。
+- 审计查询：`GET /api/admin/audit`，返回内存版隐藏操作记录（鉴权同上）。
+- 数据字段：`SongRequest` 新增 `hiddenAt`（隐藏时间，未隐藏为 `null`）。
+- 审计：`lib/songs.ts` 的 `listAudit()` 返回内存版操作记录（`hide` 动作 + 歌名快照 + 时间），重启丢失。
+- 首页 `GET /api/songs` 只返回未隐藏内容。
+- 测试：`tests/songs.test.ts`，运行 `pnpm test`（`tsx --test`），覆盖提交、隐藏后不可见、审计写入、口令校验。
+
+配置示例（复制 `.env.example` 为 `.env` 并修改）：
+
+~~~bash
+ADMIN_PASSWORD=你的口令
+~~~
+
+调用示例：
+
+~~~bash
+# 隐藏某条点歌
+curl -X PATCH http://localhost:3000/api/songs/<id> -H "x-admin-password: 你的口令"
+
+# 查看隐藏审计
+curl http://localhost:3000/api/admin/audit -H "x-admin-password: 你的口令"
+~~~
 
 ## 部署产物要求（重要）
 

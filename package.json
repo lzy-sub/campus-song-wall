@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/songs.test.ts",
     "deploy:build": "sh scripts/deploy-build.sh",
     "deploy:check": "sh scripts/check-deploy-artifacts.sh"
   },
@@ -19,6 +20,7 @@
     "@types/node": "^22.10.7",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }
 }

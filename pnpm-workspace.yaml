@@ -1,0 +1,4 @@
+# pnpm 配置：允许 esbuild（tsx 的依赖）运行安装脚本，
+# 否则 pnpm 12 会默认拦截，导致 `pnpm test`（tsx）无法工作。
+allowBuilds:
+  esbuild: true
